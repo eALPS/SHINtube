@@ -12,6 +12,7 @@ const lti = require('ltijs').Provider
 
 const CONFIG = require('../tool/config').getConfig()
 
+
 function roleCheck(roles){
     if(roles.indexOf('http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator') != -1 ||
     roles.indexOf('http://purl.imsglobal.org/vocab/lis/v2/system/person#Administrator') != -1){
@@ -25,6 +26,23 @@ function roleCheck(roles){
     }
 }
 
+
+// サービス名とコースIDの生成
+async function getServiceAndCidFromReq(req) {
+    const role = await roleCheck(req.res.locals.context.roles)
+
+    let service = (await system.makeServiceFromTokenISS(req.res.locals.token.iss)).serviceName
+    let cid = req.res.locals.context.lis.course_section_sourcedid
+
+    if ("service" in req.query && "class" in req.query && role == 2) {
+        service = req.query["service"]
+        cid = req.query["class"]
+    }
+
+    return [service, cid]
+}
+
+
 async function roleguard(req, res, next){
     const role = await roleCheck(res.locals.context.roles)
     if(role){
@@ -35,6 +53,7 @@ async function roleguard(req, res, next){
     }
 }
 
+
 async function adminguard(req, res, next){
     const role = await roleCheck(res.locals.context.roles)
     if(role == 2){
@@ -44,6 +63,7 @@ async function adminguard(req, res, next){
         res.render('error', {"error":"003 : アクセス権限エラー"})
     }
 }
+
 
 function getMeta(service,cid,vid){
     return new Promise(resolve => { 
@@ -69,25 +89,31 @@ function getMeta(service,cid,vid){
     })
 }
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/about'), async (req, res) => {
     res.render('about')
 })
+
 
 router.get(path.join('/', CONFIG.ROOT_PATH, '/TOS'), async (req, res) => {
     res.sendFile(path.resolve('docs/TOS.md'))
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/UploadAlert'), async (req, res) => {
     res.sendFile(path.resolve('docs/UploadAlert.md'))
 })
+
 
 router.get(path.join('/', CONFIG.ROOT_PATH, '/CopyAlert'), async (req, res) => {
     res.sendFile(path.resolve('docs/CopyAlert.md'))
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/DeleteAlert'), async (req, res) => {
     res.sendFile(path.resolve('docs/DeleteAlert.md'))
 })
+
 
 router.post(path.join('/', CONFIG.ROOT_PATH, '/copy'),adminguard, async (req, res) => {
     const options = {
@@ -113,13 +139,14 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/copy'),adminguard, async (req, re
     })
 })
 
+
 router.post(path.join('/', CONFIG.ROOT_PATH, '/newserviceclass'),roleguard, async (req, res) => {
     const role = await roleCheck(req.res.locals.context.roles)
     let create_service = req.query["service"] || ""
     let create_class = req.query["class"] || ""
 
     if((!create_service && !create_class) || role !=2 ){
-        create_service = req.res.locals.token.iss.split("/")[3]
+        create_service = (await system.makeServiceFromTokenISS(req.res.locals.token.iss)).serviceName
         create_class = req.res.locals.context.lis.course_section_sourcedid
     }
 
@@ -142,6 +169,7 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/newserviceclass'),roleguard, asyn
     })
 })
 
+
 router.post(path.join('/', CONFIG.ROOT_PATH, '/deleteserviceclass'),adminguard, async (req, res) => {
     const options = {
         url: CONFIG.BACK_DOMAIN + '/api/video/directory?service_name=' + encodeURIComponent(req.query["service"]) + (("class" in req.query)? '&cid=' + encodeURIComponent(req.query["class"]) : ""),
@@ -162,9 +190,11 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/deleteserviceclass'),adminguard, 
     })
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/ssourl'),adminguard, async (req, res) => {
     res.send({"link":CONFIG.SSO_LINK,"url":CONFIG.SSO_URL})
 })
+
 
 router.get(path.join('/', CONFIG.ROOT_PATH, '/allvideolist'),adminguard, async (req, res) => {
     if(req.query["service"] && req.query["class"]){
@@ -174,6 +204,7 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/allvideolist'),adminguard, async (
         res.render('listbase',{'view_type':'service_class','role':'admin'})
     }
 })
+
 
 router.get(path.join('/', CONFIG.ROOT_PATH, '/servicelist'),adminguard, async (req, res) => {
     const options = {
@@ -195,6 +226,7 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/servicelist'),adminguard, async (r
     })
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/classlist'),adminguard, async (req, res) => {
     const options = {
         url: CONFIG.BACK_DOMAIN + '/api/video/classlist?service_name=' + encodeURIComponent(req.query["service"]),
@@ -215,6 +247,7 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/classlist'),adminguard, async (req
     })
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/videolist'),roleguard, async (req, res) => {
     const role = await roleCheck(res.locals.context.roles)
     if(role == 2){
@@ -226,24 +259,9 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/videolist'),roleguard, async (req,
     
 })
 
-router.get(path.join('/', CONFIG.ROOT_PATH, '/getvideolist'),roleguard, async (req, res) => {
-    let service = res.locals.token.iss.split("/")[3]
-    let cid = res.locals.context.lis.course_section_sourcedid
-    const role = await roleCheck(req.res.locals.context.roles)
-    
-    try{
-        if(isNaN(service) || service.length == 0){
-            service = "1000"
-        }
-    }
-    catch(err){
-        service = "1000"
-    }
 
-    if("service" in req.query && "class" in req.query && role == 2){
-        service = req.query["service"]
-        cid = req.query["class"] 
-    } 
+router.get(path.join('/', CONFIG.ROOT_PATH, '/getvideolist'),roleguard, async (req, res) => {
+    let [service, cid] = (await getServiceAndCidFromReq(req))
 
     const options = {
         url: CONFIG.BACK_DOMAIN + '/api/video/linklist?service_name=' + service + '&cid=' + cid,
@@ -255,10 +273,9 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/getvideolist'),roleguard, async (r
     })
 })
 
+
 router.post(path.join('/', CONFIG.ROOT_PATH, '/createplaylist'),roleguard, async (req, res) => {
-    let service = res.locals.token.iss.split("/")[3]
-    let cid = res.locals.context.lis.course_section_sourcedid
-    const role = await roleCheck(req.res.locals.context.roles)
+    let [service, cid] = (await getServiceAndCidFromReq(req))
 
     const metadata = {
         "contributor_name" : res.locals.token.userInfo.name,
@@ -266,20 +283,7 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/createplaylist'),roleguard, async
         "content_type":"playlist",
         "playlist": req.body.playlist
     }
-    try{
-        if(isNaN(service) || service.length == 0){
-            service = "1000"
-        }
-    }
-    catch(err){
-        service = "1000"
-    }
 
-    if("service" in req.query && "class" in req.query && role == 2){
-        service = req.query["service"]
-        cid = req.query["class"] 
-    } 
-    
     const options = {
         url: CONFIG.BACK_DOMAIN + '/api/video/emptyfileupload?service_name=' + encodeURIComponent(service) + '&cid=' + encodeURIComponent(cid) + '&title=' + encodeURIComponent(req.body.title) + '&explanation=' + encodeURIComponent(req.body.explanation) + '&meta_data=' + encodeURIComponent(JSON.stringify(metadata)),
         method: 'POST'
@@ -303,29 +307,15 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/createplaylist'),roleguard, async
     })
 })
 
+
 router.post(path.join('/', CONFIG.ROOT_PATH, '/updateplaylist'),roleguard, async (req, res) => {
-    let service = res.locals.token.iss.split("/")[3]
-    let cid = res.locals.context.lis.course_section_sourcedid
-    const role = await roleCheck(req.res.locals.context.roles)
-
-    try{
-        if(isNaN(service) || service.length == 0){
-            service = "1000"
-        }
-    }
-    catch(err){
-        service = "1000"
-    }
-
-    if("service" in req.query && "class" in req.query && role == 2){
-        service = req.query["service"]
-        cid = req.query["class"] 
-    } 
+    let [service, cid] = (await getServiceAndCidFromReq(req))
 
     const options = {
         url: CONFIG.BACK_DOMAIN + '/video/' + encodeURIComponent(service) + '/' + encodeURIComponent(cid) + '/' + encodeURIComponent(req.body.vid) + '/info.json' ,
         method: 'GET'
     }
+
     request(options, function (error, response, body) {
         if(response !== undefined && response.statusCode == 200){
             
@@ -362,26 +352,11 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/updateplaylist'),roleguard, async
     })
 })
 
+
 router.post(path.join('/', CONFIG.ROOT_PATH, '/videodelete'),roleguard, async (req, res) => {
-    let service = res.locals.token.iss.split("/")[3]
-    let cid = res.locals.context.lis.course_section_sourcedid
+    let [service, cid] = (await getServiceAndCidFromReq(req))
     const vid = req.body.vid
-    const role = await roleCheck(req.res.locals.context.roles)
 
-    try{
-        if(isNaN(service) || service.length == 0){
-            service = "1000"
-        }
-    }
-    catch(err){
-        service = "1000"
-    }
-
-    if("service" in req.query && "class" in req.query && role == 2){
-        service = req.query["service"]
-        cid = req.query["class"] 
-    } 
-    
     const options = {
         url: CONFIG.BACK_DOMAIN + '/api/video/delete?service_name=' + encodeURIComponent(service) + '&cid=' + encodeURIComponent(cid) + '&vid=' + encodeURIComponent(vid),
         method: 'DELETE'
@@ -405,9 +380,11 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/videodelete'),roleguard, async (r
     })
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/watch'), async (req, res) => {
     res.render('watch')
 })
+
 
 router.get(path.join('/', CONFIG.ROOT_PATH, '/ssowatch'), async (req, res) => {
     if(CONFIG.SSO_LINK){
@@ -425,6 +402,7 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/ssowatch'), async (req, res) => {
     }   
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/system'),roleguard, async (req, res) => {
     const role = await roleCheck(res.locals.context.roles)
     if(role == 2){
@@ -435,10 +413,12 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/system'),roleguard, async (req, re
     }
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/system-check'),roleguard, async (req, res) => {
     const system_list = await system.check(req, res)
     res.send(system_list)
 })
+
 
 router.get(path.join('/', CONFIG.ROOT_PATH, '/upload'),roleguard, async (req, res) => {
     const role = await roleCheck(res.locals.context.roles)
@@ -452,23 +432,7 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/upload'),roleguard, async (req, re
 
 
 router.post(path.join('/', CONFIG.ROOT_PATH, '/upload'),roleguard, async (req, res) => {
-    let service = res.locals.token.iss.split("/")[3]
-    let cid = res.locals.context.lis.course_section_sourcedid
-    const role = await roleCheck(req.res.locals.context.roles)
-
-    try{
-        if(isNaN(service) || service.length == 0){
-            service = "1000"
-        }
-    }
-    catch(err){
-        service = "1000"
-    }
-
-    if("service" in req.body && "class" in req.body && role == 2){
-        service = req.body["service"]
-        cid = req.body["class"]
-    }
+    let [service, cid] = (await getServiceAndCidFromReq(req))
 
     const metadata = {
         "contributor_name" : res.locals.token.userInfo.name,
@@ -513,6 +477,7 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/upload'),roleguard, async (req, r
     }
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, '/edit'),roleguard, async (req, res) => {
     const role = await roleCheck(res.locals.context.roles)
     if(role == 2){
@@ -525,25 +490,7 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/edit'),roleguard, async (req, res)
 
 
 router.post(path.join('/', CONFIG.ROOT_PATH, '/edit'),roleguard, async (req, res) => {
-    let service = res.locals.token.iss.split("/")[3]
-    let cid = res.locals.context.lis.course_section_sourcedid
-    const role = await roleCheck(req.res.locals.context.roles)
-
-    try{
-        if(isNaN(service) || service.length == 0){
-            service = "1000"
-        }
-    }
-    catch(err){
-        service = "1000"
-    }
-
-    if("service" in req.body && "class" in req.body && role == 2){
-        service = req.body["service"]
-        cid = req.body["class"]
-    }
-
-
+    let [service, cid] = (await getServiceAndCidFromReq(req))
     let options
 
     if(req.files){
@@ -609,10 +556,10 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/edit'),roleguard, async (req, res
 })
 
 
-
 router.get(path.join('/', CONFIG.ROOT_PATH, '/error'), async (req, res) => {
     res.render('error', {"error":"LTI token error"})
 })
+
 
 router.get(path.join('/', CONFIG.ROOT_PATH, '/view-progress'), async (req, res) => {
     try {
@@ -644,6 +591,7 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/view-progress'), async (req, res) 
         return res.status(500).send({ err: err.message })
     }
 })
+
 
 router.post(path.join('/', CONFIG.ROOT_PATH, '/view-progress'), async (req, res) => {
     try {
@@ -794,10 +742,12 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/view-progress'), async (req, res)
     }
 })
 
+
 router.get(path.join('/', CONFIG.ROOT_PATH, "/return"), async (req, res) => {
     var redirect_url = req.res.locals.token.iss + "/course/view.php?id=" + req.res.locals.context.context.id
     res.redirect(redirect_url)
 });
+
 
 router.get(path.join('/', CONFIG.ROOT_PATH, '/logout'), async (req, res) => {
     var cookie_list = req.headers.cookie.split(";")
@@ -813,6 +763,7 @@ router.get(path.join('/', CONFIG.ROOT_PATH, '/logout'), async (req, res) => {
 
 
 const { createProxyMiddleware , responseInterceptor } = require('http-proxy-middleware')
+
 
 const sso_m3u8_proxy = createProxyMiddleware({ 
     target: CONFIG.BACK_DOMAIN, 
@@ -858,6 +809,7 @@ const sso_m3u8_proxy = createProxyMiddleware({
     }
 });
 
+
 const sso_normal_proxy = createProxyMiddleware({ 
     target: CONFIG.BACK_DOMAIN, 
     changeOrigin: true ,
@@ -895,6 +847,7 @@ const sso_normal_proxy = createProxyMiddleware({
     }
 });
 
+
 const m3u8_proxy = createProxyMiddleware({ 
     target: CONFIG.BACK_DOMAIN, 
     changeOrigin: true ,
@@ -902,23 +855,8 @@ const m3u8_proxy = createProxyMiddleware({
     pathRewrite: async function (path, req) {
         const temp_url = req.url.split('?')[0]
         const par = temp_url.slice(1).split('/')
-        const role = await roleCheck(req.res.locals.context.roles)
-        
-        let service = req.res.locals.token.iss.split("/")[3]
-        let cid = req.res.locals.context.lis.course_section_sourcedid
-        try{
-            if(isNaN(service) || service.length == 0){
-                service = "1000"
-            }
-        }
-        catch(err){
-            service = "1000"
-        }
-        if("service" in req.query && "class" in req.query && role == 2){
-            service = req.query["service"]
-            cid = req.query["class"] 
-        } 
-        
+        let [service, cid] = (await getServiceAndCidFromReq(req))
+
         return "/video/" + service + "/" + cid + "/" + par.slice(-2)[0] + "/" + par.slice(-1)[0]
     },
     onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
@@ -957,30 +895,15 @@ const m3u8_proxy = createProxyMiddleware({
     }
 
 });
-  
+
+
 const normal_proxy = createProxyMiddleware({ 
     target: CONFIG.BACK_DOMAIN, 
     changeOrigin: true ,
     pathRewrite: async function (path, req) {
         const temp_url = req.url.split('?')[0]
         const par = temp_url.slice(1).split('/')
-        const role = await roleCheck(req.res.locals.context.roles)
-
-        let service = req.res.locals.token.iss.split("/")[3]
-        let cid = req.res.locals.context.lis.course_section_sourcedid
-        try{
-            if(isNaN(service) || service.length == 0){
-                service = "1000"
-            }
-        }
-        catch(err){
-            service = "1000"
-        }
-
-        if("service" in req.query && "class" in req.query && role == 2){
-            service = req.query["service"]
-            cid = req.query["class"] 
-        } 
+        let [service, cid] = (await getServiceAndCidFromReq(req))
 
         return "/video/" + service + "/" + cid + "/" + par.slice(-2)[0] + "/" + par.slice(-1)[0]
     },

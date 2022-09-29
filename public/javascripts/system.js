@@ -40,6 +40,7 @@ function systemDisplay(system){
 
     document.getElementById("info-lms-url").innerHTML = system.lms_status.lmsUri
     document.getElementById("info-lms-year").innerHTML = system.lms_status.lmsYear
+    document.getElementById("info-lms-serviceName").innerHTML = system.lms_status.serviceName
     document.getElementById("info-lms-platformId").innerHTML = system.lms_status.platformId
     document.getElementById("info-lms-classname").innerHTML = system.lms_status.className.title
     document.getElementById("info-lms-classid").innerHTML = system.lms_status.classCode.course_section_sourcedid

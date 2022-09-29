@@ -1,5 +1,6 @@
 const request = require('request')
 const os = require('os')
+const { NONAME } = require('dns')
 const lti = require('ltijs').Provider
 
 
@@ -106,23 +107,39 @@ async function deepLinkCheck(req, res){
     }
 }
 
-async function lmsCheck(req, res){
+
+async function makeServiceFromTokenISS(iss) {
+    const retVal = {}
+    try {
+        issArray = iss.split("/")
+        retVal.lmsYear = issArray[3]
+        if (isNaN(retVal.lmsYear) || retVal.lmsYear.length == 0) {
+            retVal.lmsYear = "1000"
+            retVal.serviceName = issArray[3]
+        }
+        else {
+            retVal.serviceName = issArray[3] + "_" + issArray[4]
+        }
+    }
+    catch (err) {
+        retVal.lmsYear = "1000"
+        retVal.serviceName = issArray[3]
+    }
+    return retVal
+}
+
+
+async function lmsCheck(req, res) {
     const token = res.locals.token
     const context = res.locals.context
     const info = {}
 
     if (token.iss) info.lmsUri = token.iss
-    if (token.iss){
-        try{
-            info.lmsYear = token.iss.split("/")[3]
-            if(isNaN(info.lmsYear) || info.lmsYear.length == 0){
-                info.lmsYear = "1000"
-            }
-        }
-        catch(err){
-            info.lmsYear = "1000"
-        }
-    } 
+    if (token.iss) {
+        retVal = await makeServiceFromTokenISS(token.iss)
+        info.lmsYear = retVal.lmsYear
+        info.serviceName = retVal.serviceName
+    }
 
     if (token.platformId) info.platformId = token.platformId
 
@@ -131,6 +148,7 @@ async function lmsCheck(req, res){
 
     return info
 }
+
 
 async function systemCheck(req = false, res = false){
     var checkList = {}
@@ -155,3 +173,4 @@ async function systemCheck(req = false, res = false){
 }
 
 exports.check = systemCheck
+exports.makeServiceFromTokenISS = makeServiceFromTokenISS
