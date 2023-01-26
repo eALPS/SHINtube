@@ -214,14 +214,14 @@
     border-left: 1px solid #cacaca;
 }
 
-.selected-delete, .selected-add-list{
+.selected-delete, .selected-copy, .selected-add-list{
     margin: 0 5px;
     padding: 5px 10px;
     border-radius: 5px;
     cursor: pointer;
     user-select: none;
 }
-.selected-delete:hover, .selected-add-list:hover{
+.selected-delete:hover, .selected-copy:hover, .selected-add-list:hover{
     background: var(--hover_back_color);
 }
 

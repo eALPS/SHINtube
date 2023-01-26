@@ -1,10 +1,14 @@
+
 async function getCopyList(copy_service=false){
+    // サービスまたはクラスのリストを取得して描画に送る
     const request = new XMLHttpRequest()
     if(!copy_service){
+        // 選択トップではサービスリストを描画
         request.open('GET', "./servicelist?ltik=" + params.get("ltik"), true)
         document.getElementById("copy-to-list-title").textContent = "サービス"
     }
     else{
+        // クラスリストを描画
         request.open('GET', "./classlist?service=" + copy_service + "&ltik=" + params.get("ltik"), true)
         document.getElementById("copy-to-list-title").textContent = "クラス"
     }
@@ -39,7 +43,9 @@ function copyAlert(){
     request.onload = function () {
         if(request.status == 200){
             copy_result.innerHTML = marked.parse(request.response,{breaks: true})
-            document.getElementById("copy-run-btn").onclick = copyCheck
+            // シンボリックリンク生成によりコピーに時間がかからないのでチェックはスキップ
+            //document.getElementById("copy-run-btn").onclick = copyCheck
+            document.getElementById("copy-run-btn").onclick = copyRun
             document.getElementById("copy-run-btn").classList.remove("overlay-lock-btn")
         }
         else{
@@ -59,6 +65,8 @@ function copyListDraw(copy_to_list){
 
     const _content = document.querySelector('#template-copy').content
 
+    // サービス自身とクラス自身はコピー対象外にするためコメントアウト
+    /*
     if(copyToService){
         const new_clone = document.importNode(_content, true)
         const new_copy_to_title = new_clone.querySelector('.copy-to-title')
@@ -68,7 +76,7 @@ function copyListDraw(copy_to_list){
         new_copy_div.onclick = copyToNext
         copy_list_div.appendChild(new_clone)
     }
-
+    */
 
     for (const element of copy_to_list) {
         const clone = document.importNode(_content, true)
@@ -80,32 +88,41 @@ function copyListDraw(copy_to_list){
     }
 }
 
+
+// コピー先　最終決定　描画
 function copyToDraw(){
     document.getElementById("copy-run-btn").classList.remove("overlay-lock-btn")
     document.getElementById("copy-run-btn").onclick = copyAlert
 
     document.getElementById("copy-to-list").remove()
 
-    document.getElementById("copy-to-list-title").textContent = "転送先"
+    document.getElementById("copy-to-list-title").textContent = "複製先"
 
     let copy_list_div = document.createElement("div")
     copy_list_div.setAttribute("id","copy-to-list")
     document.getElementById("copy-to-list-area").prepend(copy_list_div)
 
+    // コピー先のディレクトリ名を描画
     const copy_result = document.createElement("div")
     copy_result.setAttribute("class","copy-to-result")
     copy_result.textContent = "/" + copyToService + "/" + copyToClass
     copy_list_div.appendChild(copy_result)  
 }
 
+// コピー先サービス
 let copyToService = false
+// コピー先クラス
 let copyToClass = false
 
 function copyToNext(){
     let toTarget = this.querySelector('.copy-to-title').textContent
+
+    // サービス自身とクラス自身はコピー対象外にするためコメントアウト
+    /*
     if(this.id == "new-copy-to"){
         toTarget = src_cid
     }
+    */
 
     if(!copyToService){
         copyToService = toTarget
@@ -137,18 +154,16 @@ function copyOverlayInit(){
     document.getElementById("copy-select-back").addEventListener("click",copyToBack)
 }
 
+
+
+// コピー先選択オーバレイ
 let src_service = false
 let src_cid = false
-let src_vid = false
+let src_vid_list = false
 function copyOverlay(target){
     src_service = params.get("service")
-    if(!params.get("class")){
-        src_cid = target
-    }
-    else{
-        src_cid = params.get("class")
-        src_vid = target
-    }
+    src_cid = params.get("class")
+    src_vid_list = target
 
     document.getElementById("copy-overlay").classList.add("overlay-on")
     getCopyList()
@@ -204,19 +219,22 @@ function copyCheck(){
     request.send()
 }
 
+
 function copyRun(){
-    let request = new XMLHttpRequest()
-    request.open('POST', "./copy?src_service=" + src_service + "&src_cid=" + src_cid + "&dst_service=" + copyToService + "&dst_cid=" + copyToClass + (src_vid?"&src_vid=" + src_vid:"") + "&ltik=" + params.get("ltik"), true)
-    request.onload = function () {
-        if(request.status == 200){
-            copyCancel()
+    src_vid_list.forEach(src_vid => {
+        let request = new XMLHttpRequest()
+        request.open('POST', "./copy?src_service=" + src_service + "&src_cid=" + src_cid + "&dst_service=" + copyToService + "&dst_cid=" + copyToClass + (src_vid ? "&src_vid=" + src_vid : "") + "&ltik=" + params.get("ltik"), true)
+        request.onload = function () {
+            if (request.status == 200) {
+            }
+            else {
+            }
         }
-        else{
-            document.getElementById("copy-err").textContent = "複製に失敗しました"
-        }
-    }
-    request.send()
-    
+        request.send()
+    });
+
+    document.getElementById("copy-err").textContent = "複製しました"
+    copyCancel()
 }
 
 window.addEventListener("load", function() {

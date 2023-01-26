@@ -19,6 +19,7 @@ function contentsListReDraw(){
     contentsListDraw(contentsfilter.VideoList())
 }
 
+
 function contentsListDraw(list){
     document.getElementById("contents-list").remove()
     let contents_list_div = document.createElement("div")
@@ -61,18 +62,7 @@ function contentsListDraw(list){
             e.stopPropagation()
         }
 
-        if(!params.get("service")){
-            const menu_copy = clone.querySelector('.content_menu_item_copy')
-            menu_copy.remove()
-        }
-        else{
-            const menu_copy = clone.querySelector('.content_menu_item_copy')
-            menu_copy.onclick = function(e){
-                copyOverlay(list[element].title)
-                //e.stopPropagation()
-            }
-        }
-
+        // 削除
         const menu_delete = clone.querySelector('.content_menu_item_delete')
         menu_delete.onclick = function(e){
             deleteServiceClass(list[element].title)

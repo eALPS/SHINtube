@@ -153,6 +153,7 @@ function video_list_draw(video_view_list){
       }
     }
 
+    /*
     const copy_btn_div = clone.querySelector('.copy-operation-btn')
     if(now_path == "allvideolist"){
       if(video_view_list[element].status == 4){
@@ -167,6 +168,7 @@ function video_list_draw(video_view_list){
     else{
       copy_btn_div.setAttribute("class","hidden-icon")
     }
+    */
 
     const sso_div = clone.querySelector('.sso-operation-btn')
     if(SSO.link){  
@@ -458,7 +460,7 @@ function videoDelete(e){
     this.src='./images/no_thumbnail.jpg'
   }
 
-  document.getElementById("delete-area-title").innerHTML =　"この" + selected_category_name + "を削除しますか"
+  document.getElementById("delete-area-title").innerHTML ="この" + selected_category_name + "を削除しますか"
   if(elem.id != "selected-delete"){
     document.getElementById("delete-title").innerHTML = video_dict[vid].title
   }
@@ -545,6 +547,33 @@ function deleteList(list){
   })
   return result
 }
+
+
+function copyList(list) {
+  var check_list = {}
+  videofilter.VideoList().forEach(function (target) {
+    check_list[target.vid] = target
+  })
+  var result = []
+  list.forEach(function (target) {
+    if (check_list[target].status == 4 || check_list[target].status == 0) {
+      result.push(target)
+    }
+  })
+  return result
+}
+
+
+function selectedVideoCopy(e) {
+  var e = e || window.event
+  var elem = e.target || e.srcElement
+
+  selectVid = selectedList()
+  var copy_list = copyList(selectVid)
+  
+  copyOverlay(copy_list)
+}
+
 
 function videoEdit(e){
   e = e || window.event

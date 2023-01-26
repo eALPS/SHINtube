@@ -12,6 +12,10 @@ const lti = require('ltijs').Provider
 
 const CONFIG = require('../tool/config').getConfig()
 
+// Video Data Folder
+const video_data_folder = 'video'
+const ssovideo_data_folder = 'ssovideo'
+
 
 function roleCheck(roles){
     if(roles.indexOf('http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator') != -1 ||
@@ -34,9 +38,23 @@ async function getServiceAndCidFromReq(req) {
     let service = (await system.makeServiceFromTokenISS(req.res.locals.token.iss)).serviceName
     let cid = req.res.locals.context.lis.course_section_sourcedid
 
+    /*
     if ("service" in req.query && "class" in req.query && role == 2) {
         service = req.query["service"]
         cid = req.query["class"]
+    }
+    */
+    if (role == 2) {
+        if ("service" in req.query) {
+            service = req.query["service"]
+        } else if (typeof req.body.service !== 'undefined') {
+            service = req.body.service
+        }
+        if ("class" in req.query) {
+            cid = req.query["class"]
+        } else if (typeof req.body.class !== 'undefined') {
+            cid = req.body.class
+        }
     }
 
     return [service, cid]
@@ -68,7 +86,7 @@ async function adminguard(req, res, next){
 function getMeta(service,cid,vid){
     return new Promise(resolve => { 
         let options = {
-            url: CONFIG.BACK_DOMAIN + '/video/' + encodeURIComponent(service) + '/' + encodeURIComponent(cid) + '/' + encodeURIComponent(vid) + '/info.json' ,
+            url: CONFIG.BACK_DOMAIN + '/' + video_data_folder + '/' + encodeURIComponent(service) + '/' + encodeURIComponent(cid) + '/' + encodeURIComponent(vid) + '/info.json' ,
             method: 'GET'
         }
         request(options, function (_error, _response, _body) {
@@ -312,7 +330,7 @@ router.post(path.join('/', CONFIG.ROOT_PATH, '/updateplaylist'),roleguard, async
     let [service, cid] = (await getServiceAndCidFromReq(req))
 
     const options = {
-        url: CONFIG.BACK_DOMAIN + '/video/' + encodeURIComponent(service) + '/' + encodeURIComponent(cid) + '/' + encodeURIComponent(req.body.vid) + '/info.json' ,
+        url: CONFIG.BACK_DOMAIN + '/' + video_data_folder + '/' + encodeURIComponent(service) + '/' + encodeURIComponent(cid) + '/' + encodeURIComponent(req.body.vid) + '/info.json' ,
         method: 'GET'
     }
 
@@ -777,7 +795,7 @@ const sso_m3u8_proxy = createProxyMiddleware({
         const par = temp_url.slice(1).split('/')
         const vid = par.slice(-2)[0]
 
-        return "/video/" + service + "/" + cid + "/" + vid + "/" + par.slice(-1)[0]
+        return '/' + ssovideo_data_folder + '/' + service + "/" + cid + "/" + vid + "/" + par.slice(-1)[0]
     },
     onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
         const response = responseBuffer.toString('utf8')
@@ -822,7 +840,7 @@ const sso_normal_proxy = createProxyMiddleware({
         const par = temp_url.slice(1).split('/')
         const vid = par.slice(-2)[0]
 
-        return "/video/" + service + "/" + cid + "/" + vid + "/" + par.slice(-1)[0]
+        return '/' + ssovideo_data_folder + '/' + service + "/" + cid + "/" + vid + "/" + par.slice(-1)[0]
     },
     onError:function(err, req, res, target){
       errorLogger.error("[proxy try error] " + err)
@@ -857,7 +875,7 @@ const m3u8_proxy = createProxyMiddleware({
         const par = temp_url.slice(1).split('/')
         let [service, cid] = (await getServiceAndCidFromReq(req))
 
-        return "/video/" + service + "/" + cid + "/" + par.slice(-2)[0] + "/" + par.slice(-1)[0]
+        return '/' + video_data_folder + '/' + service + "/" + cid + "/" + par.slice(-2)[0] + "/" + par.slice(-1)[0]
     },
     onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
         const response = responseBuffer.toString('utf8')
@@ -905,7 +923,7 @@ const normal_proxy = createProxyMiddleware({
         const par = temp_url.slice(1).split('/')
         let [service, cid] = (await getServiceAndCidFromReq(req))
 
-        return "/video/" + service + "/" + cid + "/" + par.slice(-2)[0] + "/" + par.slice(-1)[0]
+        return '/' + video_data_folder + '/' + service + "/" + cid + "/" + par.slice(-2)[0] + "/" + par.slice(-1)[0]
     },
     onError:function(err, req, res, target){
       errorLogger.error("[proxy try error] " + err)
