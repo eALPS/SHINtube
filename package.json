@@ -1,6 +1,6 @@
 {
   "name": "SHINtube",
-  "version": "1.9.1",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "env DEBUG=provider:* node app.js",
