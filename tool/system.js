@@ -116,7 +116,10 @@ async function makeServiceFromTokenISS(iss) {
         if (isNaN(retVal.lmsYear) || retVal.lmsYear.length == 0) {
             retVal.lmsYear = "1000"
             if (typeof issArray[3] === "undefined") {
-                retVal.serviceName = 'fdsd'
+                servername = issArray[2]
+                servernameArray = servername.split(".")
+                //console.log(servernameArray[0])
+                retVal.serviceName = servernameArray[0]
             } else {
                 retVal.serviceName = issArray[3]
             }
