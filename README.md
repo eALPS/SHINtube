@@ -5,6 +5,7 @@ SHINtubeはLTIを利用して認証認可を行う動画配信プラットフォ
 利用の際はバックエンドの[penM000/SHINtube-video-api](https://github.com/penM000/SHINtube-video-api)及び、LTIが利用可能なLMSが必要になります。
 
 ![SHINtubePreview](./docs/img/SHINtubeDemo.png "SHINtube")
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FeALPS%2FSHINtube.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FeALPS%2FSHINtube?ref=badge_shield)
 
 ## 機能
 - LMSとの連携
@@ -81,3 +82,5 @@ SHINtubeは、デフォルトでeALPluS-video-apiをネイティブに使用し�
 
 ## Licence
 [LICENSE](.github/LICENSE)
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FeALPS%2FSHINtube.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FeALPS%2FSHINtube?ref=badge_large)
